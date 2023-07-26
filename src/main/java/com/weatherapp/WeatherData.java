@@ -242,6 +242,11 @@ class Main {
     @JsonProperty("humidity")
     private int humidity;
 
+    @JsonProperty("sea_level")
+    private int seaLevel;
+    @JsonProperty("grnd_level")
+    private int grndLevel;
+
     public String getTemp() {
         double celsius = temp - 273.15;
         DecimalFormat df = new DecimalFormat("0.0");
@@ -266,5 +271,13 @@ class Main {
 
     public int getHumidity() {
         return humidity;
+    }
+
+    public int getSeaLevel() {
+        return seaLevel;
+    }
+
+    public int getGrndLevel() {
+        return grndLevel;
     }
 }

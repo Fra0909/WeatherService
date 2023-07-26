@@ -1,11 +1,12 @@
 package com.weatherapp;
 
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.util.EntityUtils;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
@@ -13,28 +14,34 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class WeatherController {
 
-    private static final String API_KEY = System.getenv("API_KEY");
+    private final String API_KEY;
+    private final HttpRequestHandler httpRequestHandler;
+    public WeatherController(HttpRequestHandler httpRequestHandler) {
+        API_KEY = System.getenv("API_KEY");
+        this.httpRequestHandler = httpRequestHandler;
+    }
 
     @GetMapping("/weather/{city}")
-    public WeatherData getWeather(@PathVariable String city) {
-        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            HttpGet httpGet = new HttpGet(String.format("https://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s", city.toLowerCase(), API_KEY));
+    public ResponseEntity<?> getWeather(@PathVariable String city) {
+        try {
+            String url = String.format("https://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s", city.toLowerCase(), API_KEY);
 
-            HttpResponse response = httpClient.execute(httpGet);
+            CloseableHttpResponse response = httpRequestHandler.executeGet(url);
             HttpEntity entity = response.getEntity();
 
             if (entity != null) {
                 String jsonString = EntityUtils.toString(entity);
                 if (jsonString.contains("not found")) {
-                    return new WeatherData();
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body("City not found.");
                 }
-                WeatherData wd = ResponseParser.parseWeatherDataFromJson(jsonString);
-                System.out.println(wd);
-                return wd;
+                WeatherData weatherData = ResponseParser.parseWeatherDataFromJson(jsonString);
+                return ResponseEntity.ok(weatherData);
             }
+        } catch (ClientProtocolException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error communicating with the weather service.");
         } catch (Exception e) {
-            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
         }
-        return null;
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("No response received from the weather service.");
     }
 }

@@ -4,9 +4,9 @@ import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
-import java.net.URL;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.http.ResponseEntity;
 
 public class WeatherAppUI extends JFrame {
 
@@ -44,8 +44,8 @@ public class WeatherAppUI extends JFrame {
                 String city = cityField.getText();
                 if (!city.isEmpty()) {
                     try {
-                        WeatherData weatherData = getWeatherData(city);
-                        displayWeatherInfo(weatherData);
+                        ResponseEntity<?> weatherData = getWeatherData(city);
+                        displayWeatherInfo((WeatherData) weatherData.getBody());
                     } catch (IOException ex) {
                         JOptionPane.showMessageDialog(WeatherAppUI.this, "Error fetching weather data!");
                     }
@@ -59,12 +59,13 @@ public class WeatherAppUI extends JFrame {
         add(weatherInfoArea);
     }
 
-    private WeatherData getWeatherData(String city) throws IOException {
-        WeatherController wc = new WeatherController();
+    private ResponseEntity<?> getWeatherData(String city) throws IOException {
+        WeatherController wc = new WeatherController(new HttpRequestHandler());
         return wc.getWeather(city);
     }
 
     private void displayWeatherInfo(WeatherData weatherData) {
+
         String weatherInfo = "City: " + weatherData.getName() + "\n"
                 + "Temperature: " + weatherData.getMain().getTemp() + "°C\n"
                 + "Description: " + weatherData.getWeather().get(0).getDescription() + "\n"
